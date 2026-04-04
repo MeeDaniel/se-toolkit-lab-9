@@ -2,14 +2,19 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install uv for faster pip operations
-RUN pip install uv
-
 # Copy dependency files
-COPY pyproject.toml uv.lock ./
+COPY pyproject.toml ./
 
 # Install dependencies
-RUN uv sync --frozen --no-dev
+RUN pip install --no-cache-dir \
+    websockets \
+    httpx \
+    openai \
+    pydantic \
+    pydantic-settings \
+    python-dotenv \
+    uvicorn \
+    fastapi
 
 # Copy application code
 COPY . .
@@ -18,4 +23,4 @@ COPY . .
 EXPOSE 8000
 
 # Run the nanobot agent
-CMD ["uv", "run", "python", "-m", "app.main"]
+CMD ["python", "-m", "app.main"]
