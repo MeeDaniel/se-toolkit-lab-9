@@ -1,0 +1,126 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-tourstats}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme_password_123}
+      POSTGRES_DB: ${POSTGRES_DB:-tourstats_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-tourstats}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - tourstats-network
+
+  # FastAPI Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://tourstats:changeme_password_123@db:5432/tourstats_db}
+      QWEN_API_KEY: ${QWEN_API_KEY}
+      QWEN_BASE_URL: ${QWEN_BASE_URL:-https://dashscope.aliyuncs.com/compatible-mode/v1}
+      QWEN_MODEL: ${QWEN_MODEL:-qwen-plus}
+      NANOBOT_WS_URL: ${NANOBOT_WS_URL:-ws://nanobot:8000/ws}
+      BACKEND_SECRET: ${BACKEND_SECRET:-changeme_backend_secret_123}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
+      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-tourstats-backend}
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+    networks:
+      - tourstats-network
+
+  # Nanobot AI Agent
+  nanobot:
+    build:
+      context: ./nanobot
+      dockerfile: Dockerfile
+    environment:
+      QWEN_API_KEY: ${QWEN_API_KEY}
+      QWEN_BASE_URL: ${QWEN_BASE_URL:-https://dashscope.aliyuncs.com/compatible-mode/v1}
+      QWEN_MODEL: ${QWEN_MODEL:-qwen-plus}
+      NANOBOT_ACCESS_KEY: ${NANOBOT_ACCESS_KEY:-changeme_nanobot_key_123}
+      NANOBOT_SYSTEM_PROMPT: ${NANOBOT_SYSTEM_PROMPT:-You are a helpful assistant for Innopolis tour guides.}
+      BACKEND_URL: ${BACKEND_URL:-http://backend:8000}
+      MCP_CONFIG_PATH: /app/mcp
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
+      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-tourstats-nanobot}
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./nanobot:/app
+      - ./mcp:/app/mcp:ro
+    networks:
+      - tourstats-network
+
+  # React Web Client
+  client:
+    build:
+      context: ./client-web-react
+      dockerfile: Dockerfile
+    environment:
+      REACT_APP_WS_URL: ${REACT_APP_WS_URL:-ws://localhost:8001/ws}
+      REACT_APP_API_URL: ${REACT_APP_API_URL:-http://localhost:8000}
+      REACT_APP_NANOBOT_ACCESS_KEY: ${NANOBOT_ACCESS_KEY:-changeme_nanobot_key_123}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+      - nanobot
+    volumes:
+      - ./client-web-react:/app
+      - /app/node_modules
+    networks:
+      - tourstats-network
+
+  # Caddy Reverse Proxy
+  caddy:
+    image: caddy:2.8-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - backend
+      - client
+      - nanobot
+    networks:
+      - tourstats-network
+
+  # OpenTelemetry Collector (Optional)
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.104.0
+    command: ["--config=/etc/otel-collector.yaml"]
+    volumes:
+      - ./otel-collector/otel-collector.yaml:/etc/otel-collector.yaml:ro
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+    networks:
+      - tourstats-network
+
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:
+
+networks:
+  tourstats-network:
+    driver: bridge
