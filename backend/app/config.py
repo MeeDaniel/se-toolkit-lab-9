@@ -3,9 +3,9 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql+asyncpg://tourstats:changeme_password_123@db:5432/tourstats_db"
-    QWEN_API_KEY: str = ""
-    QWEN_BASE_URL: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
-    QWEN_MODEL: str = "qwen-plus"
+    MISTRAL_API_KEY: str = ""
+    QWEN_BASE_URL: str = "https://api.mistral.ai/v1"
+    QWEN_MODEL: str = "mistral-small-latest"
     BACKEND_SECRET: str = "changeme_backend_secret_123"
     NANOBOT_WS_URL: str = "ws://nanobot:8000/ws"
     DEBUG: bool = False

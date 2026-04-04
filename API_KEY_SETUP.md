@@ -1,36 +1,31 @@
-# 🔑 How to Get a Qwen API Key
+# 🔑 How to Get a Mistral API Key
 
-The TourStats app uses AI (Qwen/LLM) to extract excursion data from natural language messages. You need an API key for this to work.
+The TourStats app uses AI (Mistral) to extract excursion data from natural language messages. You need an API key for this to work.
 
-## Option 1: Use Alibaba Cloud Qwen (Recommended)
+## Get Mistral API Key (Recommended - FREE Tier Available)
 
-1. **Sign up** at [Alibaba Cloud](https://www.alibabacloud.com/)
-2. **Go to** [DashScope Console](https://dashscope.console.aliyun.com/apiKey)
-3. **Create an API key** (it's free with some credits)
-4. **Copy the key** (starts with `sk-`)
+1. **Sign up** at [Mistral AI](https://console.mistral.ai/)
+2. **Go to** [API Keys page](https://console.mistral.ai/api-keys/)
+3. **Create a new API key**
+   - Free tier gives you **1,000,000 tokens** (very generous!)
+   - No credit card required for free tier
+4. **Copy the key** (starts with letters/numbers)
 5. **Add to `.env` file**:
+   ```env
+   MISTRAL_API_KEY=your-actual-key-here
    ```
-   QWEN_API_KEY=sk-your-actual-key-here
-   ```
 
-## Option 2: Use OpenAI Instead
+## Available Mistral Models
 
-If you have an OpenAI key, you can use it:
+The app is configured with `mistral-small-latest` by default, but you can use:
 
+- `mistral-small-latest` - Fast and efficient (default, recommended)
+- `mistral-medium-latest` - More capable reasoning
+- `mistral-large-latest` - Most powerful, highest quality
+
+To change the model, edit `.env`:
 ```env
-QWEN_API_KEY=sk-proj-your-openai-key
-QWEN_BASE_URL=https://api.openai.com/v1
-QWEN_MODEL=gpt-3.5-turbo
-```
-
-## Option 3: Use Any OpenAI-Compatible Provider
-
-The app works with any OpenAI-compatible API:
-
-```env
-QWEN_API_KEY=your-key
-QWEN_BASE_URL=https://your-custom-endpoint/v1
-QWEN_MODEL=your-model-name
+QWEN_MODEL=mistral-large-latest
 ```
 
 ## After Adding Your Key

@@ -8,7 +8,7 @@ import re
 class AIService:
     def __init__(self):
         self.client = AsyncOpenAI(
-            api_key=settings.QWEN_API_KEY,
+            api_key=settings.MISTRAL_API_KEY,
             base_url=settings.QWEN_BASE_URL,
         )
 

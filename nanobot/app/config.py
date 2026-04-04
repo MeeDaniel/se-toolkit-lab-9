@@ -2,9 +2,9 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    QWEN_API_KEY: str = ""
-    QWEN_BASE_URL: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
-    QWEN_MODEL: str = "qwen-plus"
+    MISTRAL_API_KEY: str = ""
+    QWEN_BASE_URL: str = "https://api.mistral.ai/v1"
+    QWEN_MODEL: str = "mistral-small-latest"
     NANOBOT_ACCESS_KEY: str = "changeme_nanobot_key_123"
     NANOBOT_SYSTEM_PROMPT: str = "You are a helpful assistant for Innopolis tour guides."
     BACKEND_URL: str = "http://backend:8000"
