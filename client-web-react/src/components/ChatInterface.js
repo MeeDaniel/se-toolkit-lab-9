@@ -26,7 +26,8 @@ function ChatInterface() {
   }, [messages]);
 
   const connectWebSocket = () => {
-    const ws = new WebSocket(WS_URL);
+    const wsUrlWithKey = `${WS_URL}?access_key=${ACCESS_KEY}`;
+    const ws = new WebSocket(wsUrlWithKey);
     
     ws.onopen = () => {
       console.log('WebSocket connected');

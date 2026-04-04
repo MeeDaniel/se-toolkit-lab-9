@@ -22,12 +22,27 @@ class NanobotAgent:
         logger.info("Client connected")
         
         try:
-            # Authenticate
-            access_key = websocket.request.headers.get("X-Access-Key", "")
+            # Authenticate - check query parameter or header
+            from urllib.parse import parse_qs, urlparse
+            
+            # Get access key from query string or header
+            access_key = ""
+            if hasattr(websocket, 'request'):
+                # Try header first
+                access_key = websocket.request.headers.get("X-Access-Key", "")
+                
+                # If not in header, try query param
+                if not access_key:
+                    path = websocket.request.path
+                    parsed = urlparse(path)
+                    params = parse_qs(parsed.query)
+                    access_key = params.get("access_key", [""])[0]
+            
             if access_key != settings.NANOBOT_ACCESS_KEY:
+                logger.warning(f"Invalid access key: {access_key}")
                 await websocket.send(json.dumps({
                     "type": "error",
-                    "message": "Invalid access key"
+                    "message": "Invalid access key. Please provide valid authentication."
                 }))
                 await websocket.close()
                 return

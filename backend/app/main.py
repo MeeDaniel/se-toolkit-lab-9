@@ -22,6 +22,9 @@ app = FastAPI(
     description="AI-powered statistics app for Innopolis tour guides",
     version="0.1.0",
     lifespan=lifespan,
+    docs_url="/api/docs",  # Custom docs path
+    redoc_url="/api/redoc",
+    openapi_url="/api/openapi.json",
 )
 
 # CORS middleware

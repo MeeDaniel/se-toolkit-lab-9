@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Test - TourStats</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #667eea;
+        }
+        .status {
+            padding: 10px;
+            margin: 15px 0;
+            border-radius: 6px;
+            font-weight: bold;
+        }
+        .connected {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        .disconnected {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        .messages {
+            height: 400px;
+            overflow-y: auto;
+            background: #f9fafb;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        .message {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 6px;
+        }
+        .message-user {
+            background: #dbeafe;
+            text-align: right;
+        }
+        .message-bot {
+            background: #e0e7ff;
+        }
+        .message-system {
+            background: #fef3c7;
+            text-align: center;
+        }
+        .input-area {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        button {
+            padding: 12px 24px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #5568d3;
+        }
+        button:disabled {
+            background: #d1d5db;
+            cursor: not-allowed;
+        }
+        .examples {
+            margin-top: 15px;
+        }
+        .examples button {
+            display: block;
+            width: 100%;
+            margin: 5px 0;
+            background: #f3f4f6;
+            color: #374151;
+            text-align: left;
+        }
+        .examples button:hover {
+            background: #e5e7eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 TourStats - WebSocket Test</h1>
+        <p>Testing the Nanobot AI Agent directly</p>
+        
+        <div id="status" class="status disconnected">● Disconnected</div>
+        
+        <div id="messages" class="messages"></div>
+        
+        <div class="input-area">
+            <input type="text" id="messageInput" placeholder="Type your message..." disabled>
+            <button id="sendBtn" disabled>Send</button>
+        </div>
+
+        <div class="examples">
+            <p><strong>Example messages:</strong></p>
+            <button onclick="setExample('Just finished a tour with 15 people, mostly young adults around 25. They were really energetic and interested in robotics and AI.')">Example 1: Tech-focused tour</button>
+            <button onclick="setExample('Had 30 tourists today, average age 40. Moderate energy levels. Very interested in education history.')">Example 2: Education tour</button>
+            <button onclick="setExample('Show me my excursion statistics')">Example 3: Query statistics</button>
+        </div>
+    </div>
+
+    <script>
+        const WS_URL = 'ws://localhost:8001/ws';
+        const ACCESS_KEY = 'changeme_nanobot_key_123';
+        
+        let ws = null;
+        const messagesDiv = document.getElementById('messages');
+        const statusDiv = document.getElementById('status');
+        const input = document.getElementById('messageInput');
+        const sendBtn = document.getElementById('sendBtn');
+
+        function addMessage(type, text) {
+            const msg = document.createElement('div');
+            msg.className = `message message-${type}`;
+            msg.textContent = text;
+            messagesDiv.appendChild(msg);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function setExample(text) {
+            input.value = text;
+        }
+
+        function connect() {
+            const wsUrlWithKey = `${WS_URL}?access_key=${ACCESS_KEY}`;
+            ws = new WebSocket(wsUrlWithKey);
+
+            ws.onopen = () => {
+                statusDiv.className = 'status connected';
+                statusDiv.textContent = '● Connected';
+                input.disabled = false;
+                sendBtn.disabled = false;
+                addMessage('system', 'Connected to TourStats AI Assistant');
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                console.log('Received:', data);
+                
+                if (data.type === 'welcome') {
+                    addMessage('system', data.message);
+                } else if (data.type === 'chat_response') {
+                    addMessage('bot', data.message);
+                } else if (data.type === 'error') {
+                    addMessage('system', 'Error: ' + data.message);
+                } else {
+                    addMessage('bot', JSON.stringify(data, null, 2));
+                }
+            };
+
+            ws.onclose = () => {
+                statusDiv.className = 'status disconnected';
+                statusDiv.textContent = '● Disconnected';
+                input.disabled = true;
+                sendBtn.disabled = true;
+                addMessage('system', 'Disconnected. Reconnecting in 3 seconds...');
+                setTimeout(connect, 3000);
+            };
+
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+                addMessage('system', 'Connection error');
+            };
+        }
+
+        function sendMessage() {
+            const message = input.value.trim();
+            if (!message || !ws || ws.readyState !== WebSocket.OPEN) return;
+
+            addMessage('user', message);
+            ws.send(JSON.stringify({
+                type: 'chat',
+                message: message
+            }));
+
+            input.value = '';
+        }
+
+        // Event listeners
+        sendBtn.onclick = sendMessage;
+        input.onkeypress = (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        };
+
+        // Connect on load
+        connect();
+    </script>
+</body>
+</html>
