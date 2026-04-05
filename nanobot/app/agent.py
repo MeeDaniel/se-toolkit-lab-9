@@ -100,11 +100,18 @@ class NanobotAgent:
         if len(self.conversation_history) > 10:
             self.conversation_history = self.conversation_history[-10:]
 
+        # First, try to extract excursion data
+        extracted = await self.extract_and_store_excursion(message)
+        
         # Get AI response
+        system_prompt = settings.NANOBOT_SYSTEM_PROMPT
+        if extracted:
+            system_prompt += "\n\nYou just received excursion data. Acknowledge it briefly and provide insights."
+        
         response = await self.llm_client.get_response(
             message,
             self.conversation_history[:-1],  # Exclude current message
-            settings.NANOBOT_SYSTEM_PROMPT
+            system_prompt
         )
 
         # Add to history
@@ -113,7 +120,30 @@ class NanobotAgent:
         return {
             "type": "chat_response",
             "message": response,
+            "excursion_stored": extracted is not None,
         }
+
+    async def extract_and_store_excursion(self, message: str) -> dict:
+        """Try to extract excursion data and store it"""
+        try:
+            import httpx
+            
+            # Call backend to extract and store
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.post(
+                    f"{self.mcp_tools.backend_url}/api/excursions/from-message",
+                    json={
+                        "user_id": getattr(self, 'user_id', 1),  # Default to user 1 for now
+                        "message": message
+                    }
+                )
+                
+                if response.status_code == 200:
+                    return response.json()
+                return None
+        except Exception as e:
+            print(f"Error storing excursion: {e}")
+            return None
 
     async def handle_statistics_query(self, message: str) -> dict:
         """Handle statistics query using MCP tools"""

@@ -3,7 +3,22 @@ from typing import Optional
 from datetime import datetime
 
 
+class UserCreate(BaseModel):
+    telegram_alias: str = Field(..., min_length=3, max_length=100, description="Telegram username/alias")
+
+
+class UserResponse(BaseModel):
+    id: int
+    telegram_alias: str
+    excursions: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
 class ExcursionCreate(BaseModel):
+    user_id: int
     number_of_tourists: int = Field(..., gt=0, description="Number of tourists")
     average_age: float = Field(..., gt=0, description="Average age of tourists")
     age_distribution: Optional[float] = Field(None, description="Age distribution (std deviation)")
@@ -16,6 +31,7 @@ class ExcursionCreate(BaseModel):
 
 class ExcursionResponse(BaseModel):
     id: int
+    user_id: int
     number_of_tourists: int
     average_age: float
     age_distribution: Optional[float]
@@ -30,11 +46,17 @@ class ExcursionResponse(BaseModel):
         from_attributes = True
 
 
+class ExcursionFromMessage(BaseModel):
+    user_id: int
+    message: str = Field(..., description="Natural language message about excursion")
+
+
 class ExcursionQuery(BaseModel):
     query: str = Field(..., description="Natural language query about excursions")
 
 
 class ChatMessage(BaseModel):
+    user_id: int
     message: str = Field(..., description="User message")
 
 

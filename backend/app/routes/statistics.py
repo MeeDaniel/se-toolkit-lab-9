@@ -1,22 +1,24 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func as sql_func
+from sqlalchemy import select
 from collections import Counter
 
 from app.database import get_db
 from app.models import Excursion
 from app.schemas import StatisticsResponse
-from app.services import ai_service
 
 router = APIRouter()
 
 
 @router.get("/", response_model=StatisticsResponse)
 async def get_statistics(
+    user_id: int,
     db: AsyncSession = Depends(get_db),
 ):
-    """Get overall excursion statistics"""
-    result = await db.execute(select(Excursion))
+    """Get overall excursion statistics for a user"""
+    result = await db.execute(
+        select(Excursion).where(Excursion.user_id == user_id)
+    )
     excursions = result.scalars().all()
     
     if not excursions:
@@ -59,10 +61,13 @@ async def get_statistics(
 
 @router.get("/correlations")
 async def get_correlations(
+    user_id: int,
     db: AsyncSession = Depends(get_db),
 ):
     """Get correlations between tourist demographics and interests"""
-    result = await db.execute(select(Excursion))
+    result = await db.execute(
+        select(Excursion).where(Excursion.user_id == user_id)
+    )
     excursions = result.scalars().all()
     
     if len(excursions) < 2:
