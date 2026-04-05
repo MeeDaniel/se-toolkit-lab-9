@@ -90,12 +90,9 @@ async def handle_chat_message(message: Message):
     if message.text and message.text.startswith('/'):
         return
     
-    user = await ensure_user_registered(message.from_user.id, message.from_user.username)
-    
-    # Send typing indicator
-    await message.answer_chat_action("typing")
-    
     try:
+        user = await ensure_user_registered(message.from_user.id, message.from_user.username)
+        
         # Send message to backend for AI processing
         result = await backend_service.send_message_to_backend(user["id"], message.text)
         
@@ -153,12 +150,11 @@ async def callback_stats_refresh(callback: CallbackQuery):
 @router.callback_query(lambda c: c.data == "stats_overview")
 async def callback_stats_overview(callback: CallbackQuery):
     """Handle statistics overview button"""
-    user = await ensure_user_registered(callback.from_user.id, callback.from_user.username)
-    
-    await callback.answer()
-    await callback.message.answer_chat_action("typing")
-    
     try:
+        user = await ensure_user_registered(callback.from_user.id, callback.from_user.username)
+        
+        await callback.answer()
+        
         stats = await backend_service.get_statistics(user["id"])
         
         if stats["total_excursions"] == 0:
@@ -188,17 +184,17 @@ async def callback_stats_overview(callback: CallbackQuery):
             "❌ Error loading statistics. Please try again.",
             reply_markup=get_back_to_menu_keyboard()
         )
+        await callback.answer()
 
 
 @router.callback_query(lambda c: c.data == "stats_correlations")
 async def callback_stats_correlations(callback: CallbackQuery):
     """Handle correlations button"""
-    user = await ensure_user_registered(callback.from_user.id, callback.from_user.username)
-    
-    await callback.answer()
-    await callback.message.answer_chat_action("typing")
-    
     try:
+        user = await ensure_user_registered(callback.from_user.id, callback.from_user.username)
+        
+        await callback.answer()
+        
         corr = await backend_service.get_correlations(user["id"])
         
         if "message" in corr:
@@ -233,18 +229,18 @@ async def callback_stats_correlations(callback: CallbackQuery):
             "❌ Error loading correlations. Please try again.",
             reply_markup=get_back_to_menu_keyboard()
         )
+        await callback.answer()
 
 
 @router.callback_query(lambda c: c.data.startswith("excursions_"))
 async def callback_excursions_pagination(callback: CallbackQuery):
     """Handle excursions pagination"""
-    offset = int(callback.data.split("_")[1])
-    user = await ensure_user_registered(callback.from_user.id, callback.from_user.username)
-    
-    await callback.answer()
-    await callback.message.answer_chat_action("typing")
-    
     try:
+        offset = int(callback.data.split("_")[1])
+        user = await ensure_user_registered(callback.from_user.id, callback.from_user.username)
+        
+        await callback.answer()
+        
         excursions = await backend_service.get_excursions(user["id"], offset=offset, limit=10)
         
         if not excursions:
@@ -274,6 +270,7 @@ async def callback_excursions_pagination(callback: CallbackQuery):
             "❌ Error loading excursions. Please try again.",
             reply_markup=get_back_to_menu_keyboard()
         )
+        await callback.answer()
 
 
 @router.callback_query(lambda c: c.data == "stats_excursions")
