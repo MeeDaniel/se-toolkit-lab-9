@@ -5,7 +5,7 @@ from typing import List
 
 from app.database import get_db
 from app.models import Excursion
-from app.schemas import ExcursionCreate, ExcursionResponse, ExcursionFromMessage
+from app.schemas import ExcursionCreate, ExcursionResponse, ExcursionFromMessage, ExcursionResponseWithAI
 from app.services.ai_service import ai_service
 
 router = APIRouter()
@@ -65,19 +65,16 @@ async def create_excursion(
     return db_excursion
 
 
-@router.post("/from-message", response_model=list[ExcursionResponse])
+@router.post("/from-message", response_model=ExcursionResponseWithAI)
 async def create_excursion_from_message(
     data: ExcursionFromMessage,
     db: AsyncSession = Depends(get_db),
 ):
-    """Create excursion(s) by extracting data from natural language message.
-    Returns a list of created excursions (can be empty if message is not about excursions).
+    """Create excursion(s) AND generate AI response in a single API call.
+    This reduces response time from ~15s to ~5-10s by combining extraction + response.
     """
-    # Use AI to extract data - may return multiple excursions or none
-    batch = await ai_service.extract_excursion_data(data.message)
-    
-    if not batch.excursions:
-        return []
+    # Single API call extracts data AND generates response
+    batch, ai_response = await ai_service.extract_and_respond(data.message)
     
     # Save each excursion separately
     created = []
@@ -98,7 +95,11 @@ async def create_excursion_from_message(
         await db.refresh(db_excursion)
         created.append(db_excursion)
     
-    return created
+    return ExcursionResponseWithAI(
+        excursions=created,
+        ai_response=ai_response,
+        excursion_stored=len(created) > 0
+    )
 
 
 @router.delete("/{excursion_id}")

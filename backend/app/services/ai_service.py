@@ -94,6 +94,106 @@ JSON response (array of objects, can be empty if not about excursions):"""
             # Return empty on error
             return ExcursionBatch(excursions=[], raw_message=message)
 
+    async def extract_and_respond(self, message: str, conversation_history: list[dict] = None) -> tuple[ExcursionBatch, str]:
+        """Extract excursion data AND generate AI response in a single API call.
+        Returns (ExcursionBatch, ai_response_text)
+        """
+        # Build conversation context
+        history_text = ""
+        if conversation_history:
+            for msg in conversation_history[-4:]:  # Last 4 messages for context
+                role = "User" if msg["role"] == "user" else "Assistant"
+                history_text += f"{role}: {msg['content']}\n"
+        
+        prompt = f"""You are a helpful AI assistant for Innopolis tour guides. Your job is to:
+1. Extract excursion data from tour descriptions (if present)
+2. Respond helpfully to the user's message
+
+FORMAT YOUR RESPONSE AS JSON:
+{{
+  "excursions": [
+    {{
+      "number_of_tourists": 15,
+      "average_age": 25.0,
+      "age_distribution": 5.0,
+      "vivacity_before": 0.8,
+      "vivacity_after": 0.9,
+      "interest_in_it": 0.9,
+      "interests_list": "robotics AI tech",
+      "confidence": 0.9
+    }}
+  ],
+  "response": "Your conversational response to the user goes here. Use **bold** for emphasis, *italic* for secondary emphasis, bullet points with -, numbered lists. No # headers."
+}}
+
+EXTRACTION RULES:
+- If message is NOT about excursions, return empty excursions array []
+- If message describes excursions, extract all data accurately
+- Set confidence to 0.0 if not about excursions
+- Only include excursions with confidence >= 0.5
+
+RESPONSE RULES:
+- Be helpful and conversational
+- If excursions were extracted, acknowledge and provide insights
+- If not about excursions, respond naturally to the conversation
+- Use Telegram-friendly formatting (**bold**, *italic*, lists)
+
+{history_text}
+User: {message}
+
+JSON response:"""
+
+        try:
+            response = await self.client.chat.completions.create(
+                model=settings.MISTRAL_MODEL,
+                messages=[
+                    {"role": "system", "content": "You are an AI assistant that extracts excursion data AND responds conversationally in one call. Return ONLY valid JSON with 'excursions' array and 'response' string."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.7,
+                max_tokens=1500,
+            )
+
+            content = response.choices[0].message.content.strip()
+            
+            # Extract JSON from response (handle markdown code blocks)
+            json_match = re.search(r'```(?:json)?\s*({.*})\s*```', content, re.DOTALL)
+            if json_match:
+                content = json_match.group(1)
+            
+            data = json.loads(content)
+            
+            # Parse excursions
+            excursions = []
+            for item in data.get("excursions", []):
+                extraction = AIExcursionExtraction(
+                    number_of_tourists=item.get("number_of_tourists"),
+                    average_age=item.get("average_age"),
+                    age_distribution=item.get("age_distribution"),
+                    vivacity_before=item.get("vivacity_before"),
+                    vivacity_after=item.get("vivacity_after"),
+                    interest_in_it=item.get("interest_in_it"),
+                    interests_list=item.get("interests_list"),
+                    confidence=item.get("confidence", 0.0),
+                    raw_message=message,
+                )
+                if extraction.confidence >= CONFIDENCE_THRESHOLD:
+                    excursions.append(extraction)
+            
+            batch = ExcursionBatch(excursions=excursions, raw_message=message)
+            ai_response = data.get("response", "I've processed your message.")
+            
+            return batch, ai_response
+
+        except Exception as e:
+            error_msg = str(e)
+            if "401" in error_msg or "invalid_api_key" in error_msg or "Incorrect API key" in error_msg:
+                return ExcursionBatch(excursions=[], raw_message=message), f"API Error: Invalid key"
+            # Fallback to separate calls on parse error
+            batch = await self.extract_excursion_data(message)
+            response = await self.analyze_statistics(message, "")
+            return batch, response
+
     async def analyze_statistics(self, query: str, context: str) -> str:
         """Answer natural language questions about excursion statistics"""
         

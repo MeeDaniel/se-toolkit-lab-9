@@ -92,62 +92,55 @@ class NanobotAgent:
             }
 
     async def handle_chat(self, message: str) -> dict:
-        """Handle chat message with AI response"""
+        """Handle chat message with AI response - optimized single API call"""
         # Add to conversation history
         self.conversation_history.append({"role": "user", "content": message})
-        
+
         # Keep only last 10 messages
         if len(self.conversation_history) > 10:
             self.conversation_history = self.conversation_history[-10:]
 
-        # First, try to extract excursion data
-        extracted = await self.extract_and_store_excursion(message)
-        
-        # Get AI response
-        system_prompt = settings.NANOBOT_SYSTEM_PROMPT
-        if extracted:
-            system_prompt += "\n\nYou just received excursion data. Acknowledge it briefly and provide insights."
-        
-        response = await self.llm_client.get_response(
-            message,
-            self.conversation_history[:-1],  # Exclude current message
-            system_prompt
-        )
+        # Single backend call: extracts data + saves to DB + generates response
+        result = await self.extract_and_respond(message)
 
-        # Add to history
-        self.conversation_history.append({"role": "assistant", "content": response})
+        # Add response to history
+        self.conversation_history.append({"role": "assistant", "content": result.get("message", "")})
 
-        return {
-            "type": "chat_response",
-            "message": response,
-            "excursion_stored": extracted is not None,
-        }
+        return result
 
-    async def extract_and_store_excursion(self, message: str) -> dict:
-        """Try to extract excursion data and store it"""
+    async def extract_and_respond(self, message: str) -> dict:
+        """Call backend to extract data, save to DB, and get AI response in one call"""
         try:
             import httpx
 
-            # Call backend to extract and store
+            # Single call to backend does everything
             async with httpx.AsyncClient(timeout=30.0) as client:
                 response = await client.post(
                     f"{self.mcp_tools.backend_url}/api/excursions/from-message",
                     json={
-                        "user_id": getattr(self, 'user_id', 1),  # Default to user 1 for now
+                        "user_id": getattr(self, 'user_id', 1),
                         "message": message
                     }
                 )
 
                 if response.status_code == 200:
                     data = response.json()
-                    # Only return data if excursions were actually saved
-                    if isinstance(data, list) and len(data) > 0:
-                        return data
-                    return None
-                return None
+                    return {
+                        "type": "chat_response",
+                        "message": data.get("ai_response", "I've processed your message."),
+                        "excursion_stored": data.get("excursion_stored", False)
+                    }
+                else:
+                    return {
+                        "type": "error",
+                        "message": f"Backend error: {response.status_code}"
+                    }
         except Exception as e:
-            print(f"Error storing excursion: {e}")
-            return None
+            print(f"Error in extract_and_respond: {e}")
+            return {
+                "type": "error",
+                "message": f"Error processing message: {str(e)}"
+            }
 
     async def handle_statistics_query(self, message: str) -> dict:
         """Handle statistics query using MCP tools"""
