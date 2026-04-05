@@ -52,6 +52,14 @@ function ChatInterface({ user }) {
             message: '✅ Excursion data saved to your statistics!' 
           }]);
         }
+        
+        // If excursion was updated, create a system message
+        if (data.excursion_updated) {
+          setMessages(prev => [...prev, { 
+            type: 'system', 
+            message: '📝 Excursion updated successfully!' 
+          }]);
+        }
       } else if (data.type === 'error') {
         setMessages(prev => [...prev, { type: 'error', message: data.message }]);
         setIsLoading(false);

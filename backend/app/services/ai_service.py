@@ -1,6 +1,7 @@
 from openai import AsyncOpenAI
 from app.config import settings
 from app.schemas import AIExcursionExtraction, ExcursionBatch
+from typing import Optional
 import json
 import re
 
@@ -94,9 +95,10 @@ JSON response (array of objects, can be empty if not about excursions):"""
             # Return empty on error
             return ExcursionBatch(excursions=[], raw_message=message)
 
-    async def extract_and_respond(self, message: str, conversation_history: list[dict] = None) -> tuple[ExcursionBatch, str]:
+    async def extract_and_respond(self, message: str, conversation_history: list[dict] = None) -> tuple[ExcursionBatch, str, Optional[dict]]:
         """Extract excursion data AND generate AI response in a single API call.
-        Returns (ExcursionBatch, ai_response_text)
+        Also detects if user wants to UPDATE an existing excursion.
+        Returns (ExcursionBatch, ai_response_text, update_data_or_None)
         """
         # Build conversation context
         history_text = ""
@@ -107,7 +109,20 @@ JSON response (array of objects, can be empty if not about excursions):"""
         
         prompt = f"""You are a helpful AI assistant for Innopolis tour guides. Your job is to:
 1. Extract excursion data from tour descriptions (if present)
-2. Respond helpfully to the user's message
+2. Detect if user wants to UPDATE an existing excursion
+3. Respond helpfully to the user's message
+
+EDITING CAPABILITIES:
+- You CAN update existing excursions when users request it
+- Users may say things like:
+  * "Excursion #26 actually had 20 tourists"
+  * "Change excursion 25: average age was 30, not 25"
+  * "Update the last excursion: interests were tech and AI"
+  * "Excursion 24 vivacity was 0.8 before and 0.9 after"
+- When updating, identify:
+  * excursion_id (the number after # or "excursion")
+  * which fields to update (number_of_tourists, average_age, vivacity_before, vivacity_after, interest_in_it, interests_list)
+  * new values for those fields
 
 FORMAT YOUR RESPONSE AS JSON:
 {{
@@ -123,18 +138,24 @@ FORMAT YOUR RESPONSE AS JSON:
       "confidence": 0.9
     }}
   ],
-  "response": "Your conversational response to the user goes here. Use **bold** for emphasis, *italic* for secondary emphasis, bullet points with -, numbered lists. No # headers."
+  "update": {{
+    "excursion_id": 26,
+    "number_of_tourists": 20,
+    "average_age": 30.0
+  }},
+  "response": "Your conversational response to the user goes here. Use **bold** for emphasis, *italic* for secondary emphasis, bullet points with -, numbered lists. No # headers. If you updated an excursion, confirm the changes."
 }}
 
 EXTRACTION RULES:
-- If message is NOT about excursions, return empty excursions array []
-- If message describes excursions, extract all data accurately
+- If message is about creating NEW excursions, fill the excursions array
+- If message is about UPDATING existing excursions, fill the update object
 - Set confidence to 0.0 if not about excursions
 - Only include excursions with confidence >= 0.5
 
 RESPONSE RULES:
 - Be helpful and conversational
 - If excursions were extracted, acknowledge and provide insights
+- If an excursion was updated, confirm the changes made
 - If not about excursions, respond naturally to the conversation
 - Use Telegram-friendly formatting (**bold**, *italic*, lists)
 
@@ -147,7 +168,7 @@ JSON response:"""
             response = await self.client.chat.completions.create(
                 model=settings.MISTRAL_MODEL,
                 messages=[
-                    {"role": "system", "content": "You are an AI assistant that extracts excursion data AND responds conversationally in one call. Return ONLY valid JSON with 'excursions' array and 'response' string."},
+                    {"role": "system", "content": "You are an AI assistant that extracts excursion data, detects update requests, AND responds conversationally in one call. Return ONLY valid JSON with 'excursions' array (for new), 'update' object (for updates), and 'response' string."},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.7,
@@ -183,16 +204,23 @@ JSON response:"""
             batch = ExcursionBatch(excursions=excursions, raw_message=message)
             ai_response = data.get("response", "I've processed your message.")
             
-            return batch, ai_response
+            # Check for update request
+            update_data = data.get("update")
+            if update_data and "excursion_id" in update_data:
+                # Remove excursion_id from update_data (it's handled separately)
+                excursion_id = update_data.pop("excursion_id")
+                update_data["excursion_id"] = excursion_id
+            
+            return batch, ai_response, update_data
 
         except Exception as e:
             error_msg = str(e)
             if "401" in error_msg or "invalid_api_key" in error_msg or "Incorrect API key" in error_msg:
-                return ExcursionBatch(excursions=[], raw_message=message), f"API Error: Invalid key"
+                return ExcursionBatch(excursions=[], raw_message=message), f"API Error: Invalid key", None
             # Fallback to separate calls on parse error
             batch = await self.extract_excursion_data(message)
             response = await self.analyze_statistics(message, "")
-            return batch, response
+            return batch, response, None
 
     async def analyze_statistics(self, query: str, context: str) -> str:
         """Answer natural language questions about excursion statistics"""

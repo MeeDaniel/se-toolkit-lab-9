@@ -109,7 +109,7 @@ class NanobotAgent:
         return result
 
     async def extract_and_respond(self, message: str) -> dict:
-        """Call backend to extract data, save to DB, and get AI response in one call"""
+        """Call backend to extract data, save to DB, update if needed, and get AI response in one call"""
         try:
             import httpx
 
@@ -125,10 +125,18 @@ class NanobotAgent:
 
                 if response.status_code == 200:
                     data = response.json()
+                    ai_response = data.get("ai_response", "I've processed your message.")
+                    
+                    # Add update confirmation to response if applicable
+                    if data.get("excursion_updated"):
+                        updated_id = data.get("updated_excursion_id")
+                        ai_response = f"✅ **Excursion #{updated_id} updated successfully!**\n\n{ai_response}"
+                    
                     return {
                         "type": "chat_response",
-                        "message": data.get("ai_response", "I've processed your message."),
-                        "excursion_stored": data.get("excursion_stored", False)
+                        "message": ai_response,
+                        "excursion_stored": data.get("excursion_stored", False),
+                        "excursion_updated": data.get("excursion_updated", False)
                     }
                 else:
                     return {

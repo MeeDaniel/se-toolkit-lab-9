@@ -91,6 +91,8 @@ class ExcursionResponseWithAI(BaseModel):
     excursions: list[ExcursionResponse]
     ai_response: str
     excursion_stored: bool
+    excursion_updated: bool
+    updated_excursion_id: Optional[int] = None
 
 
 class StatisticsResponse(BaseModel):
