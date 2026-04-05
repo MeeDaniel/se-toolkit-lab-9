@@ -66,6 +66,19 @@ JSON response:"""
             )
 
         except Exception as e:
+            error_msg = str(e)
+            if "401" in error_msg or "invalid_api_key" in error_msg or "Incorrect API key" in error_msg:
+                return AIExcursionExtraction(
+                    number_of_tourists=10,
+                    average_age=25.0,
+                    age_distribution=5.0,
+                    vivacity_before=0.5,
+                    vivacity_after=0.5,
+                    interest_in_it=0.5,
+                    interests_list="general tourism",
+                    confidence=0.0,
+                    raw_message=message,
+                )
             # Return default values on error
             return AIExcursionExtraction(
                 number_of_tourists=10,
