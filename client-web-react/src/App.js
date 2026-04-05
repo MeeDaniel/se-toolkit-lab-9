@@ -79,7 +79,7 @@ function App() {
           <ChatInterface user={user} />
         </div>
         <div className={`page-container ${activeTab === 'statistics' ? 'page-visible' : 'page-hidden'}`}>
-          <StatisticsDashboard user={user} />
+          <StatisticsDashboard user={user} refreshTrigger={activeTab === 'statistics'} />
         </div>
       </main>
     </div>

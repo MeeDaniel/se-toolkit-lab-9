@@ -7,34 +7,56 @@ const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 const COLORS = ['#667eea', '#764ba2', '#f093fb', '#4ade80', '#fbbf24', '#f87171'];
 
-function StatisticsDashboard({ user }) {
+function StatisticsDashboard({ user, refreshTrigger }) {
   const [statistics, setStatistics] = useState(null);
   const [correlations, setCorrelations] = useState(null);
   const [excursions, setExcursions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
 
   useEffect(() => {
-    if (user && user.id) {
-      fetchData(user.id);
+    if (user && user.id && refreshTrigger) {
+      setOffset(0);
+      fetchData(user.id, 0);
     }
-  }, [user]);
+  }, [user, refreshTrigger]);
 
-  const fetchData = async (userId) => {
+  const fetchData = async (userId, currentOffset) => {
     try {
       setLoading(true);
       const [statsRes, corrRes, excRes] = await Promise.all([
         axios.get(`${API_URL}/api/statistics/?user_id=${userId}`),
         axios.get(`${API_URL}/api/statistics/correlations?user_id=${userId}`),
-        axios.get(`${API_URL}/api/excursions/?user_id=${userId}&limit=10`),
+        axios.get(`${API_URL}/api/excursions/?user_id=${userId}&limit=10&offset=${currentOffset}`),
       ]);
 
       setStatistics(statsRes.data);
       setCorrelations(corrRes.data);
-      setExcursions(excRes.data);
+      
+      // If loading more, append to existing data
+      if (currentOffset > 0) {
+        setExcursions(prev => [...prev, ...excRes.data]);
+      } else {
+        setExcursions(excRes.data);
+      }
+      
+      // Check if there are more excursions to load
+      if (excRes.data.length < 10) {
+        setHasMore(false);
+      }
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadMore = () => {
+    const newOffset = offset + 10;
+    setOffset(newOffset);
+    if (user && user.id) {
+      fetchData(user.id, newOffset);
     }
   };
 
@@ -151,33 +173,46 @@ function StatisticsDashboard({ user }) {
       )}
 
       <div className="recent-excursions">
-        <h3>Recent Excursions</h3>
-        <table className="excursions-table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Tourists</th>
-              <th>Avg Age</th>
-              <th>Vivacity Before</th>
-              <th>Vivacity After</th>
-              <th>IT Interest</th>
-              <th>Interests</th>
-            </tr>
-          </thead>
-          <tbody>
-            {excursions.slice(0, 10).map(exc => (
-              <tr key={exc.id}>
-                <td>{exc.id}</td>
-                <td>{exc.number_of_tourists}</td>
-                <td>{exc.average_age.toFixed(1)}</td>
-                <td>{(exc.vivacity_before * 100).toFixed(0)}%</td>
-                <td>{(exc.vivacity_after * 100).toFixed(0)}%</td>
-                <td>{(exc.interest_in_it * 100).toFixed(0)}%</td>
-                <td className="interests-cell">{exc.interests_list}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <h3>Recent Excursions ({excursions.length})</h3>
+        {excursions.length === 0 ? (
+          <p className="no-excursions">No excursions yet. Start chatting to add your first excursion!</p>
+        ) : (
+          <>
+            <table className="excursions-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Tourists</th>
+                  <th>Avg Age</th>
+                  <th>Vivacity Before</th>
+                  <th>Vivacity After</th>
+                  <th>IT Interest</th>
+                  <th>Interests</th>
+                </tr>
+              </thead>
+              <tbody>
+                {excursions.map(exc => (
+                  <tr key={exc.id}>
+                    <td>{exc.id}</td>
+                    <td>{exc.number_of_tourists}</td>
+                    <td>{exc.average_age.toFixed(1)}</td>
+                    <td>{(exc.vivacity_before * 100).toFixed(0)}%</td>
+                    <td>{(exc.vivacity_after * 100).toFixed(0)}%</td>
+                    <td>{(exc.interest_in_it * 100).toFixed(0)}%</td>
+                    <td className="interests-cell">{exc.interests_list}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {hasMore && (
+              <div className="load-more-container">
+                <button className="load-more-btn" onClick={loadMore} disabled={loading}>
+                  {loading ? 'Loading...' : '📥 Load 10 More Excursions'}
+                </button>
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   );
