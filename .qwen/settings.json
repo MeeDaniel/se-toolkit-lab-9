@@ -20,7 +20,8 @@
       "Bash(mkdir *)",
       "Bash(python *)",
       "Bash(docker system *)",
-      "Bash(curl *)"
+      "Bash(curl *)",
+      "Bash(echo.)"
     ]
   },
   "$version": 3
