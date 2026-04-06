@@ -1,9 +1,7 @@
-{
-  "${CADDY_DOMAIN:-localhost}": {
+localhost {
     handle {
-      reverse_proxy /api/* backend:8000
-      reverse_proxy /ws/* nanobot:8000
-      reverse_proxy /* client:3000
+        reverse_proxy /api/* backend:8000
+        reverse_proxy /ws/* nanobot:8000
+        reverse_proxy /* client:3000
     }
-  }
 }

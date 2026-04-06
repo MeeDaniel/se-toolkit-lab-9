@@ -15,7 +15,9 @@ RUN pip install --no-cache-dir \
     pydantic-settings \
     httpx \
     openai \
-    python-dotenv
+    python-dotenv \
+    passlib[bcrypt] \
+    "bcrypt==4.0.1"
 
 # Copy application code
 COPY . .
