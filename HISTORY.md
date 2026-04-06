@@ -167,7 +167,8 @@
 - Fixed `.env`: Renamed QWEN variables to MISTRAL variables
 - Rebuilt backend container, verified password hashing/verification works
 
-### 28. Remove Telegram Bot, Implement Standalone Web Authentication
+### 28. Remove Telegram Bot, Implement Standalone Web Authentication ✅ **DONE**
+**GitHub Issue:** #4
 **User Request:** "Make items deleteable and make sure chat bot may delete them... Actually bosses decided to remove telegram bot and left only web app."
 **User Idea:** Remove Telegram bot entirely, create standalone web app with proper registration/login system. All data associated with login (not telegram alias). Every user must have password.
 
@@ -204,7 +205,8 @@
   - `.env` properly gitignored
   - Generic error messages for security
 
-### 29. Excursion Deletion Feature
+### 29. Excursion Deletion Feature ✅ **DONE**
+**GitHub Issue:** #7
 **User Request:** "Make items deleteable and make sure chat bot may delete them."
 **Solution:**
 
