@@ -310,8 +310,10 @@ function StatisticsDashboard({ user, refreshTrigger }) {
                     <td>{(exc.interest_in_it * 100).toFixed(0)}%</td>
                     <td className="interests-cell">{exc.interests_list}</td>
                     <td>
-                      <button className="edit-btn" onClick={() => openEditModal(exc)}>✏️ Edit</button>
-                      <button className="delete-btn" onClick={() => deleteExcursion(exc.id)}>🗑️ Delete</button>
+                      <div className="action-buttons">
+                        <button className="edit-btn" onClick={() => openEditModal(exc)}>✏️ Edit</button>
+                        <button className="delete-btn" onClick={() => deleteExcursion(exc.id)}>🗑️ Delete</button>
+                      </div>
                     </td>
                   </tr>
                 ))}
