@@ -302,10 +302,10 @@
 - Pushed all changes to GitHub
 
 ## Summary Statistics
-- **Total Issues Resolved:** 32
-- **Total Features Added:** 8 (Telegram bot, password security, enhanced correlations, excursion editing, excursion deletion, pagination, smart keyword extraction, standalone web auth)
+- **Total Issues Resolved:** 35
+- **Total Features Added:** 8 (password security, enhanced correlations, excursion editing, excursion deletion, pagination, smart keyword extraction, standalone web auth, wiki documentation)
 - **Major Bugs Fixed:** 10 (double-saving, alias mismatch, pagination, keywords, response time, Caddy config, passlib/bcrypt compatibility, etc.)
-- **Minor Bugs Fixed:** 22 (subtitle color, chat history, false messages, button styling, etc.)
+- **Minor Bugs Fixed:** 25 (subtitle color, chat history, false messages, button styling, frontend rename, README restructure, project cleanup, etc.)
 - **Current Blockers:** 0 (ALL RESOLVED)
 
 ## Files Modified (Major)
@@ -316,7 +316,8 @@
 - `backend/app/schemas.py` - Updated schemas for login, added delete fields
 - `backend/app/main.py` - Database migration for column rename
 - `backend/Dockerfile` - Added passlib[bcrypt] and bcrypt==4.0.1
-- `telegram-bot/` - **REMOVED** (no longer needed)
+- `telegram-bot/` - **REMOVED** (no longer needed, cleaned in #35)
+- `test_api.py` - **REMOVED** (hardcoded API key, replaced by proper tests/, cleaned in #35)
 - `client-web-react/src/components/Auth.js` - New registration/login component
 - `client-web-react/src/components/Auth.css` - Styling for auth pages
 - `client-web-react/src/components/TelegramLogin.js` - **REPLACED** by Auth.js
@@ -338,3 +339,33 @@
 12. AI prompts need very explicit examples and multiple repetitions for keyword formatting
 13. Flex container with `gap` property is cleaner than margin for button spacing
 14. Semantic hover colors (blue for edit, red for delete) improve UX while maintaining consistency
+
+### 33. Frontend Rename: "Hackathon" to "Tour Statistics Assistant"
+**User Request:** "Rename project in the frontend to 'Hackathon' to 'Tour Statistics Assistant'. User should see this name instead of 'Hackathon'."
+**Root Cause:** App title displayed "Hackathon" everywhere (browser tab, header, welcome message, auth page).
+**Solution:** Updated user-visible text in 4 files while keeping internal identifiers unchanged (localStorage keys, package name) to preserve existing user sessions:
+- `client-web-react/public/index.html` — browser title and meta description
+- `client-web-react/src/App.js` — main app header
+- `client-web-react/src/components/ChatInterface.js` — welcome message
+- `client-web-react/src/components/Auth.js` — auth page heading
+
+### 34. README Restructure and Wiki Documentation
+**User Request:** "Move README.md to the root and describe broadly what is the project about. The README.md should answer all questions asked in the lab instructions."
+**Root Cause:** README.md didn't follow Lab 9 required structure (missing Demo section placeholder, incomplete Context, no Version 1/2 feature breakdown, missing deployment troubleshooting).
+**Solution:**
+- Rewrote README.md with all required sections: Demo, Context, Features (V1 & V2), Usage, Deployment, Tech Stack
+- Created `wiki/` directory with 9 structured documentation files: Architecture, Backend, Nanobot, Frontend, Infrastructure, Data Model, API Reference, Deployment, Development
+- Deleted messy ad-hoc .md files: `API_KEY_SETUP.md`, `PLAN.md`, `QUICK_VERIFICATION.md`, `TESTING_GUIDE.md`
+- **GitHub:** Issue #8 → PR #9 → squash merged → issue closed
+
+### 35. Project Cleanup and Documentation Reorganization
+**User Request:** Clean up the project root, remove unnecessary directories and files, rename HISTORY.md, follow GitHub workflow.
+
+**Actions:**
+- **Removed `telegram-bot/` directory** — was already disabled in docker-compose.yml per HISTORY.md #28, lingering dead code
+- **Removed `test_api.py`** — one-off script with hardcoded API key, not a proper test. The `tests/` directory already contains structured tests
+- **Removed `.qwen/` from git** — AI assistant config, should not be tracked. Added to `.gitignore`
+- **Renamed `HISTORY.md` → `CHANGELOG.md`** — "HISTORY" was misleading, CHANGELOG is the standard name for tracking changes
+- Updated `.gitignore` to exclude `.qwen/` directory
+
+**GitHub:** Followed GitFlow — issue → feature branch → conventional commit → PR → squash merge → close issue

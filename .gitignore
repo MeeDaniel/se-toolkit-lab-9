@@ -38,6 +38,9 @@ Thumbs.db
 .env.local
 .env.*.local
 
+# AI assistant config
+.qwen/
+
 # Database
 *.db
 *.sqlite
