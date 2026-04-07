@@ -30,7 +30,8 @@
       "Bash(git push *)",
       "Bash(git pull *)",
       "Bash(git branch *)",
-      "Bash(ren *)"
+      "Bash(ren *)",
+      "Bash(git remote *)"
     ]
   },
   "$version": 3
