@@ -85,6 +85,7 @@ services:
       - "443:443"
     environment:
       CADDY_DOMAIN: ${CADDY_DOMAIN:-localhost}
+      NANOBOT_ACCESS_KEY: ${NANOBOT_ACCESS_KEY:-changeme_nanobot_key_123}
     volumes:
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data

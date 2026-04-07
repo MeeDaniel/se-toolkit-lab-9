@@ -4,11 +4,17 @@
 	}
 
 	handle /ws {
-		reverse_proxy nanobot:8000
+		reverse_proxy {
+			to nanobot:8000
+			header_up X-Access-Key {$NANOBOT_ACCESS_KEY:-changeme_nanobot_key_123}
+		}
 	}
 
 	handle /ws/* {
-		reverse_proxy nanobot:8000
+		reverse_proxy {
+			to nanobot:8000
+			header_up X-Access-Key {$NANOBOT_ACCESS_KEY:-changeme_nanobot_key_123}
+		}
 	}
 
 	handle {

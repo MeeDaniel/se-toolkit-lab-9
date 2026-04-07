@@ -3,7 +3,6 @@ import ReactMarkdown from 'react-markdown';
 import './ChatInterface.css';
 
 const WS_URL = process.env.REACT_APP_WS_URL || `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`;
-const ACCESS_KEY = process.env.REACT_APP_NANOBOT_ACCESS_KEY || 'changeme_nanobot_key_123';
 
 function ChatInterface({ user }) {
   const [messages, setMessages] = useState([]);
@@ -27,8 +26,7 @@ function ChatInterface({ user }) {
   }, []);
 
   const connectWebSocket = () => {
-    const wsUrlWithKey = `${WS_URL}?access_key=${ACCESS_KEY}`;
-    const ws = new WebSocket(wsUrlWithKey);
+    const ws = new WebSocket(WS_URL);
     
     ws.onopen = () => {
       console.log('WebSocket connected');
