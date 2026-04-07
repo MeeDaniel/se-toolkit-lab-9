@@ -40,7 +40,7 @@ function App() {
       <header className="app-header">
         <div className="header-content">
           <div>
-            <h1>🎯 Hackathon</h1>
+            <h1>🎯 Tour Statistics Assistant</h1>
             <p className="subtitle">AI-Powered Analytics for Tour Guides</p>
           </div>
           <div className="user-info">

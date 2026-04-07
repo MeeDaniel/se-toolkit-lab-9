@@ -1,6 +1,6 @@
-# TourStats
+# Tour Statistics Assistant
 
-AI-powered statistics app that helps Innopolis tour guides analyze tourist demographics and interests from excursion data.
+AI-powered analytics app that helps Innopolis tour guides transform natural language descriptions of excursions into structured statistics and discover correlations between tourist demographics and their interests.
 
 ## Demo
 
@@ -8,97 +8,84 @@ AI-powered statistics app that helps Innopolis tour guides analyze tourist demog
 
 ## Context
 
-**End Users:** Innopolis tour guides who lead excursions and need to track tourist engagement and interests.
+**End Users:** Innopolis tour guides who lead excursions through the university campus and need to track tourist engagement, demographics, and topic preferences.
 
-**Problem Solved:** Tour guides currently lack tools to systematically analyze the correlation between tourist demographics (age, interests, engagement levels) and their preferences. Manual tracking is tedious and insights are hard to extract.
+**Problem Solved:** Tour guides currently have no tool to systematically analyze the relationship between tourist characteristics (age, group size, energy level) and their interests (IT topics, engagement level, vivacity). After each tour, guides would need to manually record data and perform analysis — a tedious process that rarely happens. Without structured data, guides cannot answer questions like *"Do younger tourists engage more with robotics?"* or *"Which of my tours had the highest energy boost?"*
 
-**Solution:** An AI-powered app where tour guides can simply type natural language messages about completed excursions, and the system automatically extracts, structures, and analyzes statistics. The AI helps find correlations between tourist demographics and their interests (e.g., "tourists aged 20-30 were more interested in tech parts than education").
+**Solution:** A web application where tour guides simply type natural language messages about completed excursions (e.g., *"Just finished a tour with 15 people, mostly young adults around 25. They were really energetic and super interested in robotics and AI"*). An AI agent (Mistral LLM) automatically extracts structured statistics, stores them in a database, and provides a dashboard with trends, correlations, and insights — all without manual data entry.
 
 ## Features
 
-### Implemented (Version 1)
-- ✅ AI-powered text-to-statistics transformation
-- ✅ Web-based chat interface (chat simulator)
-- ✅ Store and retrieve excursion data
-- ✅ Basic statistics dashboard
-- ✅ Natural language queries about tourist data
-- ✅ Dockerized deployment
+### Implemented (Version 1 & 2)
+- ✅ AI-powered text-to-statistics extraction (Mistral LLM)
+- ✅ Real-time chat interface with AI assistant (WebSocket-based)
+- ✅ Automatic excursion data extraction: tourist count, average age, energy levels, IT interest, topic keywords
+- ✅ Statistics dashboard with paginated excursion history
+- ✅ Edit and delete excursions (via UI buttons or natural language commands)
+- ✅ Correlation analysis between demographic and interest metrics (12 correlation pairs with human-readable interpretations)
+- ✅ Natural language queries about excursion data
+- ✅ User registration and authentication (bcrypt password hashing)
+- ✅ Session persistence across page refreshes
 - ✅ REST API with FastAPI backend
-- ✅ PostgreSQL database
+- ✅ PostgreSQL database with automatic schema migration
+- ✅ Docker Compose orchestration (6 services)
+- ✅ Caddy reverse proxy
+- ✅ OpenTelemetry collector for observability
 
 ### Not Implemented (Future Versions)
-- ❌ Telegram bot integration (blocked on university VMs)
-- ❌ Advanced analytics with machine learning
 - ❌ Export to CSV/PDF
-- ❌ Multi-user support with authentication
-- ❌ Real-time collaboration
+- ❌ Advanced machine learning insights (beyond correlation analysis)
+- ❌ Multi-guide team collaboration
+- ❌ Mobile application
+- ❌ Telegram bot (blocked on university VMs)
 
 ## Usage
 
 ### For Tour Guides (End Users)
 
-1. **Access the web interface** at your deployed URL
-2. **Chat with the AI assistant** - describe your completed excursion in natural language
-3. **Example input:** "Just finished a tour with 15 people, mostly young adults around 25. They were really energetic and super interested in tech parts, especially robotics and AI. Less interested in the education history part."
-4. **The AI will extract:**
+1. **Open the web application** in your browser at the deployed URL
+2. **Register an account** with a login name and password
+3. **Describe a completed excursion** in the Chat tab using natural language:
+   > *"Just finished a tour with 15 people, mostly young adults around 25. They were really energetic and super interested in tech parts, especially robotics and AI. Less interested in the education history part."*
+4. **The AI automatically extractss:**
    - Number of tourists: 15
    - Average age: 25
-   - Vivacity before/after: high
-   - Interest in IT: high
-   - Keywords: tech parts, robotics, AI
-5. **View statistics** - query past excursions, see trends, find correlations
-6. **Ask questions** like "What's the average interest in IT across all my tours?" or "Show me excursions with high tourist engagement"
+   - Vivacity (energy) before: ~0.6
+   - Vivacity (energy) after: ~0.9
+   - Interest in IT: ~0.85
+   - Keywords: `robotics AI tech`
+5. **Switch to the Statistics tab** to view all your excursions in a table, edit or delete entries, and see correlation insights
+6. **Ask natural language questions** in the chat, such as *"What's the average interest in IT across all my tours?"*
 
 ### For Developers
 
-See deployment section below.
+See the Deployment section below to run the full stack locally.
+
+Additional developer documentation is available in the [wiki](wiki/) directory:
+
+| Document | Content |
+|----------|---------|
+| [Architecture](wiki/architecture.md) | System overview, service topology, data flow |
+| [Backend](wiki/backend.md) | FastAPI API, routes, AI service, database models |
+| [Nanobot Agent](wiki/nanobot.md) | WebSocket AI agent, message processing |
+| [Frontend](wiki/frontend.md) | React components, state management, API communication |
+| [Data Model](wiki/data-model.md) | Database schema, field semantics |
+| [API Reference](wiki/api-reference.md) | Complete REST + WebSocket API documentation |
+| [Development](wiki/development.md) | Local dev workflow, testing, Git workflow |
 
 ## Deployment
 
 ### Target OS
-Ubuntu 24.04 (LTS)
+Ubuntu 24.04 LTS (same as university VMs)
 
 ### Prerequisites
 - Docker and Docker Compose
 - Git
-- Mistral API key (for AI functionality)
-- At least 2GB RAM
+- Mistral API key (free tier available at [console.mistral.ai](https://console.mistral.ai/))
+- At least 2 GB RAM
 - Ports 80 and 443 available
 
-### Step-by-Step Deployment
-
-1. **Clone the repository**
-   ```bash
-   git clone <your-repo-url>
-   cd se-toolkit-hackathon
-   ```
-
-2. **Configure environment**
-   ```bash
-   cp .env.example .env
-   # Edit .env and add your Mistral API key
-   ```
-
-3. **Start all services**
-   ```bash
-   docker compose up -d
-   ```
-
-4. **Verify services are running**
-   ```bash
-   docker compose ps
-   ```
-
-5. **Access the application**
-   - Web interface: `http://your-server-ip`
-   - API documentation: `http://your-server-ip/api/docs`
-
-6. **View logs**
-   ```bash
-   docker compose logs -f
-   ```
-
-### Required VM Installations
+### VM Setup
 
 ```bash
 # Update system
@@ -107,64 +94,123 @@ sudo apt update && sudo apt upgrade -y
 # Install Docker
 curl -fsSL https://get.docker.com | sudo sh
 sudo usermod -aG docker $USER
+# Log out and back in for group changes to take effect
 
-# Install Docker Compose (usually included with Docker)
+# Verify installation
+docker --version
 docker compose version
-
-# Clone and deploy
-git clone <your-repo-url>
-cd <repo>
-docker compose up -d
 ```
 
-## Tech Stack
+### Step-by-Step Deployment
 
-- **Backend:** Python, FastAPI, SQLAlchemy, PostgreSQL
-- **AI Agent:** Nanobot framework, Mistral AI API, MCP (Model Context Protocol)
-- **Frontend:** React (TypeScript), WebSocket
-- **Infrastructure:** Docker Compose, Caddy (reverse proxy)
-- **Observability:** OpenTelemetry (basic)
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/MeeDaniel/se-toolkit-hackathon.git
+   cd se-toolkit-hackathon
+   ```
+
+2. **Configure environment variables**
+   ```bash
+   cp .env.example .env
+   ```
+   Edit `.env` and set at minimum:
+   - `MISTRAL_API_KEY` — your Mistral AI API key
+   - `POSTGRES_PASSWORD` — a secure database password
+   - `NANOBOT_ACCESS_KEY` — a secure random string for WebSocket auth
+   - `BACKEND_SECRET` — a secure random string for internal service auth
+
+3. **Start all services**
+   ```bash
+   docker compose up -d
+   ```
+   This launches 6 services:
+   - **PostgreSQL** — database
+   - **Backend** (FastAPI) — REST API + AI service integration
+   - **Nanobot** — WebSocket AI agent
+   - **Client** (React) — web interface
+   - **Caddy** — reverse proxy
+   - **OpenTelemetry Collector** — observability
+
+4. **Verify services are running**
+   ```bash
+   docker compose ps
+   ```
+   All services should show `Up` status.
+
+5. **Access the application**
+   - Web interface: `http://your-server-ip` (or `http://localhost` locally)
+   - API documentation: `http://your-server-ip/api/docs`
+   - Health check: `http://your-server-ip/api/health`
+
+6. **View logs**
+   ```bash
+   docker compose logs -f         # all services
+   docker compose logs -f backend  # specific service
+   ```
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Service won't start | Check logs: `docker compose logs <service>` |
+| Invalid API key error | Verify `MISTRAL_API_KEY` in `.env` is correct |
+| Port conflict | Change port mapping in `docker-compose.yml` |
+| Database connection error | Ensure db is healthy: `docker compose ps db` |
+| WebSocket fails | Check `NANOBOT_ACCESS_KEY` matches in `.env` and client config |
+
+See [wiki/deployment.md](wiki/deployment.md) for detailed troubleshooting.
 
 ## Project Structure
 
 ```
 se-toolkit-hackathon/
-├── backend/              # FastAPI application
+├── backend/              # FastAPI REST API + AI service
 │   ├── app/
-│   │   ├── main.py
-│   │   ├── models.py
-│   │   ├── schemas.py
-│   │   ├── database.py
-│   │   ├── routes/
-│   │   └── services/
+│   │   ├── main.py       # App entry, routers, CORS, DB migration
+│   │   ├── models.py     # SQLAlchemy models (User, Excursion)
+│   │   ├── schemas.py    # Pydantic request/response schemas
+│   │   ├── database.py   # Async database connection
+│   │   ├── config.py     # Settings from environment
+│   │   ├── routes/       # API endpoints (users, excursions, chat, stats)
+│   │   └── services/     # Business logic (Mistral AI integration)
 │   ├── Dockerfile
 │   └── pyproject.toml
-├── nanobot/              # AI agent service
+├── nanobot/              # WebSocket AI agent
 │   ├── app/
+│   │   ├── agent.py      # WebSocket server, message handler
+│   │   ├── config.py     # Settings
+│   │   ├── llm_client.py # LLM client wrapper
+│   │   └── mcp_tools.py  # MCP tool registry
 │   ├── Dockerfile
 │   └── pyproject.toml
-├── client-web-react/     # Web chat interface
+├── client-web-react/     # React web interface
 │   ├── src/
+│   │   ├── App.js        # Root component (auth, tabs)
+│   │   └── components/   # Auth, ChatInterface, StatisticsDashboard
 │   ├── Dockerfile
 │   └── package.json
 ├── mcp/                  # MCP tool definitions
-├── caddy/                # Reverse proxy config
-│   └── Caddyfile
-├── docker-compose.yml
-├── .env.example
+├── caddy/                # Reverse proxy
+│   └── Caddyfile         # Routing rules
+├── otel-collector/       # Observability
+│   └── otel-collector.yaml
+├── wiki/                 # Extended project documentation
+├── docker-compose.yml    # Service orchestration
+├── .env.example          # Environment template
 └── README.md
 ```
 
-## Data Model
+## Tech Stack
 
-### Excursion
-- `number_of_tourists` (INT) - Total number of tourists
-- `average_age` (DOUBLE) - Average age of tourists
-- `age_distribution` (DOUBLE) - Standard deviation of ages
-- `vivacity_before` (DOUBLE) - Tourist energy level before excursion (0-1)
-- `vivacity_after` (DOUBLE) - Tourist energy level after excursion (0-1)
-- `interest_in_it` (DOUBLE) - Interest in IT topics (0-1)
-- `interests_list` (STRING) - Space-separated keywords of interests
+| Component | Technology |
+|-----------|-----------|
+| Backend | Python, FastAPI, SQLAlchemy (async), PostgreSQL 16 |
+| AI/LLM | Mistral AI API (via OpenAI-compatible SDK) |
+| Agent | Nanobot (WebSocket-based message processor) |
+| Frontend | React 18, WebSocket, CSS |
+| Infrastructure | Docker Compose, Caddy 2.8 (reverse proxy) |
+| Observability | OpenTelemetry Collector |
+| Security | bcrypt password hashing via passlib |
 
 ## License
 

@@ -132,7 +132,7 @@ function ChatInterface({ user }) {
       <div className="chat-messages">
         {messages.length === 0 && (
           <div className="welcome-message">
-            <h3>👋 Welcome to Hackathon!</h3>
+            <h3>👋 Welcome to Tour Statistics Assistant!</h3>
             <p>Describe your completed excursion and I'll extract statistics automatically.</p>
             <p><strong>Example:</strong> "Just finished a tour with 15 people, mostly young adults around 25. They were really energetic and interested in robotics and AI."</p>
           </div>
