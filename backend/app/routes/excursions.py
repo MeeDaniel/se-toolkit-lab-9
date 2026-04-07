@@ -2,11 +2,14 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import List
+import logging
 
 from app.database import get_db
 from app.models import Excursion
 from app.schemas import ExcursionCreate, ExcursionResponse, ExcursionFromMessage, ExcursionResponseWithAI, ExcursionUpdate
 from app.services.ai_service import ai_service
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -72,57 +75,95 @@ async def create_excursion_from_message(
 ):
     """Create excursion(s) AND generate AI response in a single API call.
     Also handles UPDATE and DELETE requests for existing excursions.
-    This reduces response time from ~15s to ~5-10s by combining extraction + response.
+    Fetches user's recent excursions to give AI context for update/delete operations.
     """
-    # Single API call extracts data, detects updates/deletes, AND generates response
-    batch, ai_response, update_data, delete_data = await ai_service.extract_and_respond(data.message)
+    # Fetch user's recent excursions (last 10) for AI context
+    recent_result = await db.execute(
+        select(Excursion)
+        .where(Excursion.user_id == data.user_id)
+        .order_by(Excursion.created_at.desc())
+        .limit(10)
+    )
+    recent_excursions = [
+        {
+            "id": e.id,
+            "number_of_tourists": e.number_of_tourists,
+            "average_age": e.average_age,
+            "vivacity_before": e.vivacity_before,
+            "vivacity_after": e.vivacity_after,
+            "interest_in_it": e.interest_in_it,
+            "interests_list": e.interests_list,
+            "created_at": str(e.created_at) if e.created_at else "",
+        }
+        for e in recent_excursions
+    ]
+
+    # Single API call with user's excursion context
+    batch, ai_response, update_data, delete_data = await ai_service.extract_and_respond(
+        data.message,
+        user_excursions=recent_excursions if recent_excursions else None,
+    )
 
     # Handle UPDATE request if detected
     excursion_updated = False
     updated_excursion_id = None
     if update_data and "excursion_id" in update_data:
-        excursion_id = update_data.pop("excursion_id")
-
-        # Verify ownership
-        result = await db.execute(
-            select(Excursion).where(
-                Excursion.id == excursion_id,
-                Excursion.user_id == data.user_id
+        excursion_id_raw = update_data.pop("excursion_id")
+        # Validate: must be an integer
+        if not isinstance(excursion_id_raw, int):
+            logger.warning(f"AI returned non-integer excursion_id for update: {excursion_id_raw!r}")
+            ai_response += "\n\n⚠️ I couldn't identify a valid excursion to update."
+        else:
+            # Verify ownership
+            result = await db.execute(
+                select(Excursion).where(
+                    Excursion.id == excursion_id_raw,
+                    Excursion.user_id == data.user_id
+                )
             )
-        )
-        excursion = result.scalar_one_or_none()
+            excursion = result.scalar_one_or_none()
 
-        if excursion:
-            # Update only provided fields
-            for field, value in update_data.items():
-                if hasattr(excursion, field) and value is not None:
-                    setattr(excursion, field, value)
+            if excursion:
+                # Update only provided fields
+                for field, value in update_data.items():
+                    if hasattr(excursion, field) and value is not None:
+                        setattr(excursion, field, value)
 
-            await db.flush()
-            await db.refresh(excursion)
-            excursion_updated = True
-            updated_excursion_id = excursion_id
+                await db.flush()
+                await db.refresh(excursion)
+                excursion_updated = True
+                updated_excursion_id = excursion_id_raw
+            else:
+                logger.warning(f"User {data.user_id} tried to update non-owned excursion #{excursion_id_raw}")
+                ai_response += f"\n\n⚠️ I couldn't find excursion #{excursion_id_raw} in your records."
 
     # Handle DELETE request if detected
     excursion_deleted = False
     delete_message = ""
     if delete_data and "excursion_id" in delete_data:
-        excursion_id = delete_data["excursion_id"]
-
-        # Verify ownership
-        result = await db.execute(
-            select(Excursion).where(
-                Excursion.id == excursion_id,
-                Excursion.user_id == data.user_id
+        excursion_id_raw = delete_data["excursion_id"]
+        # Validate: must be an integer
+        if not isinstance(excursion_id_raw, int):
+            logger.warning(f"AI returned non-integer excursion_id for delete: {excursion_id_raw!r}")
+            ai_response += "\n\n⚠️ I couldn't identify a valid excursion to delete."
+        else:
+            # Verify ownership
+            result = await db.execute(
+                select(Excursion).where(
+                    Excursion.id == excursion_id_raw,
+                    Excursion.user_id == data.user_id
+                )
             )
-        )
-        excursion = result.scalar_one_or_none()
+            excursion = result.scalar_one_or_none()
 
-        if excursion:
-            await db.delete(excursion)
-            await db.flush()
-            excursion_deleted = True
-            delete_message = f"Excursion #{excursion_id} has been deleted."
+            if excursion:
+                await db.delete(excursion)
+                await db.flush()
+                excursion_deleted = True
+                delete_message = f"Excursion #{excursion_id_raw} has been deleted."
+            else:
+                logger.warning(f"User {data.user_id} tried to delete non-owned excursion #{excursion_id_raw}")
+                ai_response += f"\n\n⚠️ I couldn't find excursion #{excursion_id_raw} in your records."
 
     # Save each new excursion separately
     created = []
