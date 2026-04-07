@@ -95,10 +95,16 @@ JSON response (array of objects, can be empty if not about excursions):"""
             # Return empty on error
             return ExcursionBatch(excursions=[], raw_message=message)
 
-    async def extract_and_respond(self, message: str, conversation_history: list[dict] = None) -> tuple[ExcursionBatch, str, Optional[dict]]:
+    async def extract_and_respond(self, message: str, user_excursions: list[dict] = None, conversation_history: list[dict] = None) -> tuple[ExcursionBatch, str, Optional[dict]]:
         """Extract excursion data AND generate AI response in a single API call.
         Also detects if user wants to UPDATE an existing excursion.
-        Returns (ExcursionBatch, ai_response_text, update_data_or_None)
+        
+        Args:
+            message: User message text
+            user_excursions: List of user's recent excursions (with id, date, fields).
+                             Required for update/delete operations so AI knows valid IDs.
+            conversation_history: Previous chat messages for context
+        Returns (ExcursionBatch, ai_response_text, update_data_or_None, delete_data_or_None)
         """
         # Build conversation context
         history_text = ""
@@ -106,6 +112,14 @@ JSON response (array of objects, can be empty if not about excursions):"""
             for msg in conversation_history[-4:]:  # Last 4 messages for context
                 role = "User" if msg["role"] == "user" else "Assistant"
                 history_text += f"{role}: {msg['content']}\n"
+
+        # Build user excursion context
+        excursions_context = ""
+        if user_excursions:
+            lines = [f"  #{e['id']} | {e.get('created_at', 'unknown')[:10]} | {e['number_of_tourists']} tourists | avg age {e['average_age']} | vivacity {e['vivacity_before']}→{e['vivacity_after']} | IT interest {e['interest_in_it']} | keywords: {e.get('interests_list', 'none')}" for e in user_excursions]
+            excursions_context = "\nUSER'S RECENT EXCURSIONS (reference these by ID when updating/deleting):\n" + "\n".join(lines) + "\n"
+        else:
+            excursions_context = "\nUSER HAS NO EXISTING EXCURSIONS. Only handle as new excursion creation.\n"
         
         prompt = f"""You are a helpful AI assistant for Innopolis tour guides. Your job is to:
 1. Extract excursion data from tour descriptions (if present)
@@ -115,25 +129,26 @@ JSON response (array of objects, can be empty if not about excursions):"""
 
 EDITING CAPABILITIES:
 - You CAN update existing excursions when users request it
+- The user's excursions are listed above with their IDs, dates, and field values
+- When user says "last excursion", "first excursion", "most recent", etc., use the corresponding ID from the list above
+- CRITICAL: Only use excursion IDs that appear in the USER'S RECENT EXCURSIONS list above. NEVER guess or invent IDs.
+- If the user has NO existing excursions, tell them politely that there's nothing to update
 - Users may say things like:
   * "Excursion #26 actually had 20 tourists"
   * "Change excursion 25: average age was 30, not 25"
   * "Update the last excursion: interests were tech and AI"
   * "Excursion 24 vivacity was 0.8 before and 0.9 after"
 - When updating, identify:
-  * excursion_id (the number after # or "excursion")
+  * excursion_id (use the exact ID from the user's excursion list above)
   * which fields to update (number_of_tourists, average_age, vivacity_before, vivacity_after, interest_in_it, interests_list)
   * new values for those fields
 
 DELETION CAPABILITIES:
 - You CAN delete excursions when users explicitly request it
-- Users may say things like:
-  * "Delete excursion #26"
-  * "Remove excursion 25"
-  * "Delete the last excursion"
-  * "Excursion 24 should be deleted"
+- CRITICAL: Only use excursion IDs that appear in the USER'S RECENT EXCURSIONS list above. NEVER guess or invent IDs.
+- If the user has NO existing excursions, tell them politely that there's nothing to delete
 - When deleting, identify:
-  * excursion_id (the number to delete)
+  * excursion_id (use the exact ID from the user's excursion list above)
   * Set "delete": true and "excursion_id": <number>
 
 FORMAT YOUR RESPONSE AS JSON:
@@ -174,6 +189,7 @@ RESPONSE RULES:
 - If not about excursions, respond naturally to the conversation
 - Use Telegram-friendly formatting (**bold**, *italic*, lists)
 
+{excursions_context}
 {history_text}
 User: {message}
 
@@ -183,7 +199,7 @@ JSON response:"""
             response = await self.client.chat.completions.create(
                 model=settings.MISTRAL_MODEL,
                 messages=[
-                    {"role": "system", "content": "You are an AI assistant that extracts excursion data, detects update requests, AND responds conversationally in one call. Return ONLY valid JSON with 'excursions' array (for new), 'update' object (for updates), and 'response' string."},
+                    {"role": "system", "content": "You are an AI assistant that extracts excursion data, detects update/delete requests, AND responds conversationally in one call. Return ONLY valid JSON with 'excursions' array (for new), 'update' object (for updates), 'delete' object (for deletes), and 'response' string. When updating or deleting, ONLY use excursion IDs from the user's excursion list provided in the prompt."},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.7,
