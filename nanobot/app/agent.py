@@ -81,9 +81,10 @@ class NanobotAgent:
         message_type = data.get("type", "chat")
         message = data.get("message", "")
         user_id = data.get("user_id", 1)
+        auth_token = data.get("auth_token", "")
 
         if message_type == "chat":
-            return await self.handle_chat(message, user_id)
+            return await self.handle_chat(message, user_id, auth_token)
         elif message_type == "query_statistics":
             return await self.handle_statistics_query(message, user_id)
         else:
@@ -92,7 +93,7 @@ class NanobotAgent:
                 "message": f"Unknown message type: {message_type}"
             }
 
-    async def handle_chat(self, message: str, user_id: int = 1) -> dict:
+    async def handle_chat(self, message: str, user_id: int = 1, auth_token: str = "") -> dict:
         """Handle chat message with AI response - optimized single API call"""
         # Add to conversation history
         self.conversation_history.append({"role": "user", "content": message})
@@ -102,17 +103,21 @@ class NanobotAgent:
             self.conversation_history = self.conversation_history[-10:]
 
         # Single backend call: extracts data + saves to DB + generates response
-        result = await self.extract_and_respond(message, user_id)
+        result = await self.extract_and_respond(message, user_id, auth_token)
 
         # Add response to history
         self.conversation_history.append({"role": "assistant", "content": result.get("message", "")})
 
         return result
 
-    async def extract_and_respond(self, message: str, user_id: int = 1) -> dict:
+    async def extract_and_respond(self, message: str, user_id: int = 1, auth_token: str = "") -> dict:
         """Call backend to extract data, save to DB, update if needed, and get AI response in one call"""
         try:
             import httpx
+
+            headers = {"Content-Type": "application/json"}
+            if auth_token:
+                headers["Authorization"] = f"Bearer {auth_token}"
 
             # Single call to backend does everything
             async with httpx.AsyncClient(timeout=30.0) as client:
@@ -121,7 +126,8 @@ class NanobotAgent:
                     json={
                         "user_id": user_id,
                         "message": message
-                    }
+                    },
+                    headers=headers
                 )
 
                 if response.status_code == 200:

@@ -103,7 +103,8 @@ function ChatInterface({ user }) {
       wsRef.current.send(JSON.stringify({
         type: 'chat',
         message: inputMessage,
-        user_id: user.id
+        user_id: user.id,
+        auth_token: user.auth_token
       }));
     }
 

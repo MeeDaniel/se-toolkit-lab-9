@@ -4,20 +4,21 @@ from sqlalchemy import select
 from collections import Counter
 
 from app.database import get_db
-from app.models import Excursion
+from app.models import Excursion, User
 from app.schemas import StatisticsResponse
+from app.auth import get_current_user
 
 router = APIRouter()
 
 
 @router.get("/", response_model=StatisticsResponse)
 async def get_statistics(
-    user_id: int,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
-    """Get overall excursion statistics for a user"""
+    """Get overall excursion statistics for the authenticated user"""
     result = await db.execute(
-        select(Excursion).where(Excursion.user_id == user_id)
+        select(Excursion).where(Excursion.user_id == current_user.id)
     )
     excursions = result.scalars().all()
     
@@ -61,14 +62,14 @@ async def get_statistics(
 
 @router.get("/correlations")
 async def get_correlations(
-    user_id: int,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """Get correlations between tourist demographics and interests.
     Analyzes all meaningful pairs and returns the most interesting ones.
     """
     result = await db.execute(
-        select(Excursion).where(Excursion.user_id == user_id)
+        select(Excursion).where(Excursion.user_id == current_user.id)
     )
     excursions = result.scalars().all()
 

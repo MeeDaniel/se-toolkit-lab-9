@@ -5,6 +5,13 @@ import './StatisticsDashboard.css';
 
 const API_URL = process.env.REACT_APP_API_URL || '';
 
+function createApi(axios, token) {
+  return axios.create({
+    baseURL: API_URL,
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+}
+
 const COLORS = ['#667eea', '#764ba2', '#f093fb', '#4ade80', '#fbbf24', '#f87171'];
 
 function StatisticsDashboard({ user, refreshTrigger }) {
@@ -26,15 +33,16 @@ function StatisticsDashboard({ user, refreshTrigger }) {
 
   const fetchData = async (userId, currentOffset, isLoadMore = false) => {
     try {
-      // Only show full loading state on initial load
       if (!isLoadMore) {
         setLoading(true);
       }
-      
+
+      const api = createApi(axios, user.auth_token);
+
       const [statsRes, corrRes, excRes] = await Promise.all([
-        axios.get(`${API_URL}/api/statistics/?user_id=${userId}`),
-        axios.get(`${API_URL}/api/statistics/correlations?user_id=${userId}`),
-        axios.get(`${API_URL}/api/excursions/?user_id=${userId}&limit=10&offset=${currentOffset}`),
+        api.get('/api/statistics/'),
+        api.get('/api/statistics/correlations'),
+        api.get(`/api/excursions/?limit=10&offset=${currentOffset}`),
       ]);
 
       setStatistics(statsRes.data);
@@ -86,11 +94,8 @@ function StatisticsDashboard({ user, refreshTrigger }) {
 
   const saveEdit = async () => {
     try {
-      await axios.put(
-        `${API_URL}/api/excursions/${editingExcursion.id}`,
-        editForm,
-        { params: { user_id: user.id } }
-      );
+      const api = createApi(axios, user.auth_token);
+      await api.put(`/api/excursions/${editingExcursion.id}`, editForm);
       // Refresh data after save
       fetchData(user.id, 0);
       closeEditModal();
@@ -106,10 +111,8 @@ function StatisticsDashboard({ user, refreshTrigger }) {
     }
 
     try {
-      await axios.delete(
-        `${API_URL}/api/excursions/${excursionId}`,
-        { params: { user_id: user.id } }
-      );
+      const api = createApi(axios, user.auth_token);
+      await api.delete(`/api/excursions/${excursionId}`);
       // Refresh data after delete
       fetchData(user.id, 0);
     } catch (error) {

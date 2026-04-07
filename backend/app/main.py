@@ -54,6 +54,14 @@ async def lifespan(app: FastAPI):
                     ) THEN
                         ALTER TABLE users ADD COLUMN login VARCHAR(100) UNIQUE NOT NULL DEFAULT '';
                     END IF;
+
+                    -- Add auth_token column if it doesn't exist
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_name = 'users' AND column_name = 'auth_token'
+                    ) THEN
+                        ALTER TABLE users ADD COLUMN auth_token VARCHAR(64) UNIQUE DEFAULT NULL;
+                    END IF;
                 END $$;
             """)
         except Exception as e:

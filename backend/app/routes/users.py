@@ -41,11 +41,12 @@ async def register_user(
     if existing_user:
         raise HTTPException(status_code=409, detail="Login already taken")
 
-    # Create new user with hashed password
+    # Create new user with hashed password and auth token
     db_user = User(
         login=normalized_login,
         password_hash=hash_password(user_data.password)
     )
+    db_user.generate_token()
     db.add(db_user)
     await db.flush()
     await db.refresh(db_user)
@@ -53,6 +54,7 @@ async def register_user(
     return UserResponse(
         id=db_user.id,
         login=db_user.login,
+        auth_token=db_user.auth_token,
         created_at=db_user.created_at
     )
 
@@ -72,13 +74,18 @@ async def login_user(
 
     if not user:
         raise HTTPException(status_code=401, detail="Invalid login or password")
-    
+
     if not verify_password(login_data.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid login or password")
+
+    # Generate new token on each login (invalidates old sessions)
+    user.generate_token()
+    await db.flush()
 
     return UserResponse(
         id=user.id,
         login=user.login,
+        auth_token=user.auth_token,
         created_at=user.created_at
     )
 

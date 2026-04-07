@@ -16,6 +16,7 @@ class UserLogin(BaseModel):
 class UserResponse(BaseModel):
     id: int
     login: str
+    auth_token: str
     created_at: datetime
 
     class Config:
@@ -23,7 +24,6 @@ class UserResponse(BaseModel):
 
 
 class ExcursionCreate(BaseModel):
-    user_id: int
     number_of_tourists: int = Field(..., gt=0, description="Number of tourists")
     average_age: float = Field(..., gt=0, description="Average age of tourists")
     age_distribution: Optional[float] = Field(None, description="Age distribution (std deviation)")
@@ -62,7 +62,6 @@ class ExcursionResponse(BaseModel):
 
 
 class ExcursionFromMessage(BaseModel):
-    user_id: int
     message: str = Field(..., description="Natural language message about excursion")
 
 
@@ -71,7 +70,6 @@ class ExcursionQuery(BaseModel):
 
 
 class ChatMessage(BaseModel):
-    user_id: int
     message: str = Field(..., description="User message")
 
 
