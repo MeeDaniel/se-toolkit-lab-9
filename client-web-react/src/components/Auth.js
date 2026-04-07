@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import './Auth.css';
 
-const API_URL = process.env.REACT_APP_API_URL || '/api';
+const API_URL = process.env.REACT_APP_API_URL || '';
 
 function Auth({ onLogin }) {
   const [isLogin, setIsLogin] = useState(true);
@@ -43,8 +43,12 @@ function Auth({ onLogin }) {
 
     try {
       const endpoint = isLogin ? '/api/users/login' : '/api/users/register';
-      
-      const response = await fetch(`${API_URL}${endpoint}`, {
+
+      const url = API_URL
+        ? `${API_URL}${endpoint}`
+        : endpoint;
+
+      const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

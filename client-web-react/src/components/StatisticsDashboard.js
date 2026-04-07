@@ -3,7 +3,7 @@ import axios from 'axios';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell } from 'recharts';
 import './StatisticsDashboard.css';
 
-const API_URL = process.env.REACT_APP_API_URL || '/api';
+const API_URL = process.env.REACT_APP_API_URL || '';
 
 const COLORS = ['#667eea', '#764ba2', '#f093fb', '#4ade80', '#fbbf24', '#f87171'];
 
@@ -32,9 +32,9 @@ function StatisticsDashboard({ user, refreshTrigger }) {
       }
       
       const [statsRes, corrRes, excRes] = await Promise.all([
-        axios.get(`${API_URL}/api/statistics/?user_id=${userId}`),
-        axios.get(`${API_URL}/api/statistics/correlations?user_id=${userId}`),
-        axios.get(`${API_URL}/api/excursions/?user_id=${userId}&limit=10&offset=${currentOffset}`),
+        axios.get(`${API_URL}/statistics/?user_id=${userId}`),
+        axios.get(`${API_URL}/statistics/correlations?user_id=${userId}`),
+        axios.get(`${API_URL}/excursions/?user_id=${userId}&limit=10&offset=${currentOffset}`),
       ]);
 
       setStatistics(statsRes.data);
@@ -87,7 +87,7 @@ function StatisticsDashboard({ user, refreshTrigger }) {
   const saveEdit = async () => {
     try {
       await axios.put(
-        `${API_URL}/api/excursions/${editingExcursion.id}`,
+        `${API_URL}/excursions/${editingExcursion.id}`,
         editForm,
         { params: { user_id: user.id } }
       );
@@ -107,7 +107,7 @@ function StatisticsDashboard({ user, refreshTrigger }) {
 
     try {
       await axios.delete(
-        `${API_URL}/api/excursions/${excursionId}`,
+        `${API_URL}/excursions/${excursionId}`,
         { params: { user_id: user.id } }
       );
       // Refresh data after delete
