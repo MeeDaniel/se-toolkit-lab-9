@@ -32,9 +32,9 @@ function StatisticsDashboard({ user, refreshTrigger }) {
       }
       
       const [statsRes, corrRes, excRes] = await Promise.all([
-        axios.get(`${API_URL}/statistics/?user_id=${userId}`),
-        axios.get(`${API_URL}/statistics/correlations?user_id=${userId}`),
-        axios.get(`${API_URL}/excursions/?user_id=${userId}&limit=10&offset=${currentOffset}`),
+        axios.get(`${API_URL}/api/statistics/?user_id=${userId}`),
+        axios.get(`${API_URL}/api/statistics/correlations?user_id=${userId}`),
+        axios.get(`${API_URL}/api/excursions/?user_id=${userId}&limit=10&offset=${currentOffset}`),
       ]);
 
       setStatistics(statsRes.data);
@@ -87,7 +87,7 @@ function StatisticsDashboard({ user, refreshTrigger }) {
   const saveEdit = async () => {
     try {
       await axios.put(
-        `${API_URL}/excursions/${editingExcursion.id}`,
+        `${API_URL}/api/excursions/${editingExcursion.id}`,
         editForm,
         { params: { user_id: user.id } }
       );
@@ -107,7 +107,7 @@ function StatisticsDashboard({ user, refreshTrigger }) {
 
     try {
       await axios.delete(
-        `${API_URL}/excursions/${excursionId}`,
+        `${API_URL}/api/excursions/${excursionId}`,
         { params: { user_id: user.id } }
       );
       // Refresh data after delete
