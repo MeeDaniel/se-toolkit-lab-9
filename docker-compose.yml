@@ -8,8 +8,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-tourstats}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme_password_123}
       POSTGRES_DB: ${POSTGRES_DB:-tourstats_db}
-    ports:
-      - "5432:5432"
+    # NOTE: Port 5432 is NOT exposed externally. Only accessible within Docker network.
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -29,19 +28,16 @@ services:
       - .env
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://tourstats:changeme_password_123@db:5432/tourstats_db}
-      MISTRAL_BASE_URL: https://api.mistral.ai/v1
-      MISTRAL_MODEL: mistral-small-latest
+      MISTRAL_BASE_URL: ${MISTRAL_BASE_URL:-https://api.mistral.ai/v1}
+      MISTRAL_MODEL: ${MISTRAL_MODEL:-mistral-small-latest}
       NANOBOT_WS_URL: ${NANOBOT_WS_URL:-ws://nanobot:8000/ws}
       BACKEND_SECRET: ${BACKEND_SECRET:-changeme_backend_secret_123}
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
-      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-hackathon-backend}
-    ports:
-      - "8000:8000"
+      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-tourstats-backend}
+    # NOTE: Port 8000 is NOT exposed externally. Accessible via Caddy reverse proxy.
     depends_on:
       db:
         condition: service_healthy
-    volumes:
-      - ./backend:/app
     networks:
       - hackathon-network
 
@@ -53,39 +49,31 @@ services:
     env_file:
       - .env
     environment:
-      MISTRAL_BASE_URL: https://api.mistral.ai/v1
-      MISTRAL_MODEL: mistral-small-latest
+      MISTRAL_BASE_URL: ${MISTRAL_BASE_URL:-https://api.mistral.ai/v1}
+      MISTRAL_MODEL: ${MISTRAL_MODEL:-mistral-small-latest}
       NANOBOT_ACCESS_KEY: ${NANOBOT_ACCESS_KEY:-changeme_nanobot_key_123}
       NANOBOT_SYSTEM_PROMPT: ${NANOBOT_SYSTEM_PROMPT:-You are a helpful assistant for Innopolis tour guides.}
       BACKEND_URL: ${BACKEND_URL:-http://backend:8000}
       MCP_CONFIG_PATH: /app/mcp
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
-      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-hackathon-nanobot}
-    ports:
-      - "8001:8000"
-    volumes:
-      - ./nanobot:/app
-      - ./mcp:/app/mcp:ro
+      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-tourstats-nanobot}
+    # NOTE: Port 8000 (internal) is NOT exposed externally. Accessible via Caddy reverse proxy.
     networks:
       - hackathon-network
 
-  # React Web Client
+  # React Web Client (Production Build via Nginx)
   client:
     build:
       context: ./client-web-react
       dockerfile: Dockerfile
     environment:
-      REACT_APP_WS_URL: ${REACT_APP_WS_URL:-ws://localhost:8001/ws}
-      REACT_APP_API_URL: ${REACT_APP_API_URL:-http://localhost:8000}
+      REACT_APP_WS_URL: ${REACT_APP_WS_URL:-ws://localhost/ws}
+      REACT_APP_API_URL: ${REACT_APP_API_URL:-http://localhost/api}
       REACT_APP_NANOBOT_ACCESS_KEY: ${NANOBOT_ACCESS_KEY:-changeme_nanobot_key_123}
-    ports:
-      - "3000:3000"
+    # NOTE: Port 3000 is NOT exposed externally. Accessible via Caddy reverse proxy.
     depends_on:
       - backend
       - nanobot
-    volumes:
-      - ./client-web-react:/app
-      - /app/node_modules
     networks:
       - hackathon-network
 
@@ -95,6 +83,8 @@ services:
     ports:
       - "80:80"
       - "443:443"
+    environment:
+      CADDY_DOMAIN: ${CADDY_DOMAIN:-localhost}
     volumes:
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
@@ -106,15 +96,13 @@ services:
     networks:
       - hackathon-network
 
-  # OpenTelemetry Collector (Optional)
+  # OpenTelemetry Collector (Optional - internal only)
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.104.0
     command: ["--config=/etc/otel-collector.yaml"]
     volumes:
       - ./otel-collector/otel-collector.yaml:/etc/otel-collector.yaml:ro
-    ports:
-      - "4317:4317"
-      - "4318:4318"
+    # NOTE: Ports 4317/4318 are NOT exposed externally. Internal telemetry only.
     networks:
       - hackathon-network
 

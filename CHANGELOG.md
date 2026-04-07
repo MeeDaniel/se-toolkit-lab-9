@@ -302,9 +302,9 @@
 - Pushed all changes to GitHub
 
 ## Summary Statistics
-- **Total Issues Resolved:** 35
-- **Total Features Added:** 8 (password security, enhanced correlations, excursion editing, excursion deletion, pagination, smart keyword extraction, standalone web auth, wiki documentation)
-- **Major Bugs Fixed:** 10 (double-saving, alias mismatch, pagination, keywords, response time, Caddy config, passlib/bcrypt compatibility, etc.)
+- **Total Issues Resolved:** 36
+- **Total Features Added:** 9 (password security, enhanced correlations, excursion editing, excursion deletion, pagination, smart keyword extraction, standalone web auth, wiki documentation, production deployment)
+- **Major Bugs Fixed:** 11 (double-saving, alias mismatch, pagination, keywords, response time, Caddy config, passlib/bcrypt compatibility, localhost hardcoding, exposed internal ports, etc.)
 - **Minor Bugs Fixed:** 25 (subtitle color, chat history, false messages, button styling, frontend rename, README restructure, project cleanup, etc.)
 - **Current Blockers:** 0 (ALL RESOLVED)
 
@@ -369,3 +369,25 @@
 - Updated `.gitignore` to exclude `.qwen/` directory
 
 **GitHub:** Followed GitFlow — issue → feature branch → conventional commit → PR → squash merge → close issue
+
+### 36. Production Deployment Preparation
+**User Request:** "Prepare the project for deploying. Make sure everything will work on vm and be accessible from the outside."
+
+**Problem:** The project was configured for local development only — hardcoded `localhost`, exposed internal ports, dev-mode volumes, no domain support, no deploy script.
+
+**Solution:**
+
+- **docker-compose.yml** — Removed external port exposure for internal services (db:5432, backend:8000, nanobot:8001, otel:4317/4318). Only Caddy (80/443) is exposed. Removed dev-mode volume mounts. All services use production build.
+- **Caddyfile** — Added `${CADDY_DOMAIN:-localhost}` env variable support. Automatically uses domain name for production or falls back to localhost for development. Added gzip compression.
+- **Frontend components** — Changed fallback URLs from `http://localhost:8000` to relative paths (`/api`, `/ws`). ChatInterface auto-detects `ws://` vs `wss://` based on protocol. Works through Caddy proxy regardless of domain/IP.
+- **nginx.conf** — Updated `server_name _` (catch-all), added no-cache directive for `index.html` to prevent stale builds.
+- **.env.example** — Rewritten with clear sections, comments, and production guidance. Added `CADDY_DOMAIN` and `CADDY_ADMIN_EMAIL` variables.
+- **deploy.sh** — New one-click deploy script: checks Docker, creates .env if missing, validates MISTRAL_API_KEY, starts services, waits for DB health, prints access URLs.
+- **Removed `TelegramLogin.js`** — deprecated component lingering in git.
+
+**How to deploy on VM:**
+```bash
+git clone <repo> && cd se-toolkit-hackathon
+cp .env.example .env  # edit MISTRAL_API_KEY, CADDY_DOMAIN, passwords
+bash deploy.sh
+```
