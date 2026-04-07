@@ -92,9 +92,20 @@ echo "============================================"
 echo "  Access Points"
 echo "============================================"
 echo ""
-echo "  Web App:    http://$(grep CADDY_DOMAIN .env | cut -d= -f2 | tr -d '[:space:]')"
-echo "  API Docs:   http://$(grep CADDY_DOMAIN .env | cut -d= -f2 | tr -d '[:space:]')/api/docs"
-echo "  Health:     http://$(grep CADDY_DOMAIN .env | cut -d= -f2 | tr -d '[:space:]')/api/health"
+
+# Extract CADDY_DOMAIN value
+CADDY_VAL=$(grep '^CADDY_DOMAIN=' .env | head -1 | cut -d= -f2 | tr -d '[:space:]')
+
+# If value already has http:// or https://, use it as-is
+if echo "$CADDY_VAL" | grep -q '^https\?://'; then
+    BASE_URL="$CADDY_VAL"
+else
+    BASE_URL="http://$CADDY_VAL"
+fi
+
+echo "  Web App:    $BASE_URL"
+echo "  API Docs:   $BASE_URL/api/docs"
+echo "  Health:     $BASE_URL/api/health"
 echo ""
 echo "  View logs:  docker compose logs -f"
 echo "  Stop:       docker compose down"
