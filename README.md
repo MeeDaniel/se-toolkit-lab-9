@@ -4,7 +4,12 @@ AI-powered analytics app that helps Innopolis tour guides transform natural lang
 
 ## Demo
 
-> *[Screenshots will be added after deployment]*
+<img width="1798" height="781" alt="image" src="https://github.com/user-attachments/assets/98f53987-a587-4d2a-a668-e0598c21ee10" />
+<img width="2560" height="1391" alt="image" src="https://github.com/user-attachments/assets/4d64f1dd-0020-490a-bb71-67ed97334ce8" />
+<img width="2560" height="1337" alt="image" src="https://github.com/user-attachments/assets/64280912-944e-4408-9ad7-be1fe770f74f" />
+<img width="2560" height="1388" alt="image" src="https://github.com/user-attachments/assets/2b196031-e5bf-469d-9d0d-9fa4c37a1bad" />
+<img width="2560" height="1381" alt="image" src="https://github.com/user-attachments/assets/c1cf5e94-5899-4d25-aabb-d029de85beba" />
+
 
 ## Context
 
